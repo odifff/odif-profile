@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OdifOS — Muhammad Difaul Haq Arsy "Odif"</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Plus Jakarta Sans, Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Inter"', 'sans-serif'],
+                        display: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        electric: '#2563EB',
+                        slateDeep: '#0F172A',
+                        surfaceLight: '#F8FAFC',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --color-electric: #2563EB;
+            --color-dark-slate: #0F172A;
+            --color-off-white: #F8FAFC;
+        }
+
+        /* Subtle Dot-Matrix Desktop Wallpaper */
+        .os-wallpaper {
+            background-color: #F8FAFC;
+            background-image: radial-gradient(rgba(37, 99, 235, 0.16) 1.25px, transparent 1.25px);
+            background-size: 24px 24px;
+        }
+        .dark .os-wallpaper {
+            background-color: #0F172A;
+            background-image: radial-gradient(rgba(59, 130, 246, 0.18) 1.25px, transparent 1.25px);
+            background-size: 24px 24px;
+        }
+
+        /* Desktop Window Positioning & Smooth Focus */
+        @media (min-width: 1024px) {
+            .os-window {
+                position: absolute;
+                transition: box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .os-window.is-dragging {
+                transition: none !important;
+                user-select: none;
+            }
+        }
+
+        /* Mobile Stack Transition */
+        @media (max-width: 1023px) {
+            .os-window {
+                position: relative !important;
+                left: auto !important;
+                top: auto !important;
+                width: 100% !important;
+            }
+        }
+
+        /* Active Window Highlight */
+        .os-window.active-window {
+            border-color: rgba(37, 99, 235, 0.55);
+            box-shadow: 0 24px 50px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(37, 99, 235, 0.2);
+        }
+        .dark .os-window.active-window {
+            border-color: rgba(59, 130, 246, 0.6);
+            box-shadow: 0 26px 55px -12px rgba(2, 6, 23, 0.75), 0 0 0 1px rgba(59, 130, 246, 0.28);
+        }
+
+        /* Dock Magnification Micro-Interaction */
+        .dock-item {
+            transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease;
+        }
+        @media (min-width: 1024px) {
+            .dock-item:hover {
+                transform: translateY(-6px) scale(1.08);
+            }
+        }
+
+        /* Custom Window Scrollbar */
+        .win-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .win-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .win-scroll::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.35);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="os-wallpaper text-[#0F172A] dark:text-slate-100 min-h-screen lg:h-screen lg:overflow-hidden flex flex-col justify-between transition-colors duration-300 antialiased selection:bg-[#2563EB] selection:text-white">
+
+    <!-- Toast Notification Banner (Replaces alert) -->
+    <div id="toast-container" role="status" aria-live="polite" class="fixed top-14 right-4 z-[9999] transform -translate-y-6 opacity-0 transition-all duration-300 pointer-events-none max-w-xs sm:max-w-sm">
+        <div class="flex items-start gap-3 bg-[#0F172A] dark:bg-slate-800 text-white px-4 py-3.5 rounded-2xl shadow-2xl border border-slate-700/80">
+            <div class="w-7 h-7 rounded-lg bg-[#2563EB]/30 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            </div>
+            <div class="space-y-0.5">
+                <p id="toast-title" class="font-display text-xs font-bold tracking-tight">System Ready</p>
+                <p id="toast-body" class="text-xs text-slate-300 leading-relaxed">Action completed.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. TOP OS MENU / STATUS BAR -->
+    <header class="sticky top-0 z-[900] h-11 px-3 sm:px-5 bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/90 flex items-center justify-between gap-2 select-none">
+        
+        <!-- Left: OS Brand & Live Location -->
+        <div class="flex items-center gap-3 min-w-0">
+            <button type="button" onclick="resetWorkspace()" title="Reset Window Layout" class="flex items-center gap-2 font-display font-extrabold text-xs sm:text-sm text-[#0F172A] dark:text-white hover:text-[#2563EB] dark:hover:text-blue-400 transition">
+                <span class="w-5 h-5 rounded-md bg-[#2563EB] text-white font-extrabold text-[11px] flex items-center justify-center shadow-xs">O</span>
+                <span>OdifOS</span>
+            </button>
+            <span class="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
+            <div class="hidden md:flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>SDJZU • Jinan</span>
+            </div>
+        </div>
+
+        <!-- Center/Right: Clickable Student ID, Tile Reset, Theme Toggle & Clock -->
+        <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            <!-- One-Click Copy Student ID Pill -->
+            <button type="button" onclick="copyStudentId()" title="Click to copy Student ID" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/90 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-[#2563EB] dark:hover:text-blue-400 border border-slate-200/80 dark:border-slate-700/80 text-[11px] sm:text-xs font-mono font-semibold transition">
+                <i data-lucide="id-card" class="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400"></i>
+                <span>ID: 20260100022</span>
+                <i data-lucide="copy" class="w-3 h-3 opacity-60"></i>
+            </button>
+
+            <!-- Arrange Windows Button (Desktop) -->
+            <button type="button" onclick="resetWorkspace()" title="Arrange Default Windows" class="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold transition">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                <span>Arrange</span>
+            </button>
+
+            <!-- Light / Dark Theme Toggle -->
+            <button type="button" onclick="toggleTheme()" aria-label="Toggle Light or Dark Mode" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-center transition">
+                <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-400 hidden dark:block"></i>
+                <i data-lucide="moon" class="w-3.5 h-3.5 text-slate-700 block dark:hidden"></i>
+            </button>
+
+            <!-- Live Clock -->
+            <div id="os-clock" class="hidden sm:block font-mono text-xs font-semibold text-slate-600 dark:text-slate-300 pl-1">
+                17:16
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. INTERACTIVE DESKTOP CANVAS -->
+    <main id="desktop-canvas" class="relative flex-1 w-full max-w-[1440px] mx-auto px-4 pt-4 pb-28 lg:p-6 lg:overflow-hidden">
+        
+        <!-- Left Desktop Shortcut Icons (Desktop Only) -->
+        <div class="hidden lg:flex flex-col gap-4 w-24 select-none relative z-10">
+            <button type="button" onclick="openWindow('win-profile')" class="group flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-blue-500/10 dark:hover:bg-blue-400/10 transition text-center">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2563EB] to-blue-700 text-white shadow-md shadow-blue-600/20 flex items-center justify-center group-hover:scale-105 transition">
+                    <i data-lucide="user-check" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white/75 dark:bg-slate-900/75 px-2 py-0.5 rounded-md shadow-2xs">Profile.me</span>
+            </button>
+
+            <button type="button" onclick="openWindow('win-athletics')" class="group flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-blue-500/10 dark:hover:bg-blue-400/10 transition text-center">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/20 flex items-center justify-center group-hover:scale-105 transition">
+                    <i data-lucide="trophy" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white/75 dark:bg-slate-900/75 px-2 py-0.5 rounded-md shadow-2xs">Athletics.app</span>
+            </button>
+
+            <button type="button" onclick="openWindow('win-study')" class="group flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-blue-500/10 dark:hover:bg-blue-400/10 transition text-center">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white shadow-md shadow-emerald-500/20 flex items-center justify-center group-hover:scale-105 transition">
+                    <i data-lucide="briefcase" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white/75 dark:bg-slate-900/75 px-2 py-0.5 rounded-md shadow-2xs">Study_Biz.doc</span>
+            </button>
+
+            <button type="button" onclick="openWindow('win-favorites')" class="group flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-blue-500/10 dark:hover:bg-blue-400/10 transition text-center">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-md shadow-purple-600/20 flex items-center justify-center group-hover:scale-105 transition">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white/75 dark:bg-slate-900/75 px-2 py-0.5 rounded-md shadow-2xs">Favorites.hub</span>
+            </button>
+
+            <button type="button" onclick="openWindow('win-message')" class="group flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-blue-500/10 dark:hover:bg-blue-400/10 transition text-center">
+                <div class="w-12 h-12 rounded-2xl bg-[#0F172A] dark:bg-slate-800 text-blue-400 border border-slate-700 shadow-md flex items-center justify-center group-hover:scale-105 transition">
+                    <i data-lucide="send" class="w-6 h-6"></i>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-white/75 dark:bg-slate-900/75 px-2 py-0.5 rounded-md shadow-2xs">Message.app</span>
+            </button>
+        </div>
+
+        <!-- Mobile Quick Filter Hint Banner -->
+        <div class="lg:hidden mb-4 flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
+            <span class="font-medium">Tap any app in the bottom dock to jump or open.</span>
+            <button type="button" onclick="openAllMobile()" class="font-bold text-[#2563EB] dark:text-blue-400 shrink-0 ml-2">Show All</button>
+        </div>
+
+        <!-- WINDOWS CONTAINER (Stacks cleanly on mobile, free-floating draggable on desktop) -->
+        <div id="windows-stage" class="flex flex-col gap-5 lg:block">
+
+            <!-- ========================================================= -->
+            <!-- WINDOW 1: Profile.me (Open by Default)                    -->
+            <!-- ========================================================= -->
+            <section id="win-profile" data-win-id="win-profile" onmousedown="focusWindow('win-profile')" class="os-window active-window rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col" style="left: 132px; top: 20px; width: 540px; z-index: 30;">
+                <!-- Draggable Window Title Bar -->
+                <div class="win-drag-handle cursor-grab active:cursor-grabbing px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between select-none">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeWindow('win-profile', event)" aria-label="Close Profile Window" class="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 transition"></button>
+                        <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-[#2563EB]"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                        <i data-lucide="user-check" class="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400"></i>
+                        <span>Profile.me</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400">SDJZU</span>
+                </div>
+
+                <!-- Window Content -->
+                <div class="p-6 sm:p-7 space-y-5 win-scroll lg:max-h-[72vh] overflow-y-auto">
+                    <!-- Top Identity Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2563EB] to-blue-700 text-white font-display font-extrabold text-3xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-600/25">
+                            O
+                        </div>
+                        <div class="space-y-1">
+                            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/70 border border-blue-200/70 dark:border-blue-800/70 text-[11px] font-bold text-[#2563EB] dark:text-blue-300">
+                                <span>Welcome to OdifOS</span>
+                            </div>
+                            <h1 class="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-[#0F172A] dark:text-white leading-snug">
+                                Muhammad Difaul Haq Arsy <span class="text-[#2563EB] dark:text-blue-400">"Odif"</span>
+                            </h1>
+                            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                                Student at Shandong Jianzhu University (SDJZU) • Jinan, China
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Bio Paragraph -->
+                    <p class="text-sm sm:text-[15px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Hi, I'm <strong class="text-[#0F172A] dark:text-white font-semibold">Odif</strong>! I am currently studying at <strong class="text-[#0F172A] dark:text-white font-semibold">Shandong Jianzhu University (SDJZU)</strong> in Jinan, China (Student ID: <button type="button" onclick="copyStudentId()" class="font-mono font-bold text-[#2563EB] dark:text-blue-400 underline decoration-dotted underline-offset-2 hover:text-blue-500">20260100022</button>). I balance university life with learning <strong class="text-[#0F172A] dark:text-white font-semibold">business, English, and Mandarin Chinese</strong>, competing at a high level in <strong class="text-[#0F172A] dark:text-white font-semibold">sports</strong>, and enjoying great <strong class="text-[#0F172A] dark:text-white font-semibold">series, movies, and games</strong>.
+                    </p>
+
+                    <!-- Quick Metadata Strip -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">University</p>
+                            <p class="font-display font-bold text-xs sm:text-sm text-[#0F172A] dark:text-white mt-0.5">SDJZU, Jinan</p>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Highlight</p>
+                            <p class="font-display font-bold text-xs sm:text-sm text-[#2563EB] dark:text-blue-400 mt-0.5">Top City Badminton</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick-Launch App Shortcuts inside Profile -->
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                        <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Launch Workspace Apps</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="openWindow('win-athletics')" class="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-xs font-bold flex items-center gap-1.5 transition">
+                                <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                                <span>Athletics.app</span>
+                            </button>
+                            <button type="button" onclick="openWindow('win-study')" class="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold flex items-center gap-1.5 transition">
+                                <i data-lucide="briefcase" class="w-3.5 h-3.5"></i>
+                                <span>Study_Biz.doc</span>
+                            </button>
+                            <button type="button" onclick="openWindow('win-favorites')" class="px-3.5 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-bold flex items-center gap-1.5 transition">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                <span>Favorites.hub</span>
+                            </button>
+                            <button type="button" onclick="openWindow('win-message')" class="px-3.5 py-2 rounded-xl bg-[#2563EB] hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                                <span>Message Odif</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- WINDOW 2: Athletics.app (Open by Default alongside Profile) -->
+            <!-- ========================================================= -->
+            <section id="win-athletics" data-win-id="win-athletics" onmousedown="focusWindow('win-athletics')" class="os-window rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col" style="left: 700px; top: 36px; width: 490px; z-index: 25;">
+                <!-- Draggable Window Title Bar -->
+                <div class="win-drag-handle cursor-grab active:cursor-grabbing px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between select-none">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeWindow('win-athletics', event)" aria-label="Close Athletics Window" class="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 transition"></button>
+                        <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-[#2563EB]"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                        <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-500"></i>
+                        <span>Athletics.app</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400">SPORTS</span>
+                </div>
+
+                <!-- Window Content -->
+                <div class="p-6 space-y-4 win-scroll lg:max-h-[72vh] overflow-y-auto">
+                    
+                    <!-- Featured Badminton Card -->
+                    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#2563EB] via-blue-600 to-blue-800 text-white p-5 shadow-md">
+                        <div class="flex items-center justify-between gap-2 mb-3">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400 text-[#0F172A] text-[11px] font-extrabold uppercase tracking-wide">
+                                <i data-lucide="award" class="w-3.5 h-3.5"></i>
+                                <span>Top City Player</span>
+                            </span>
+                            <button type="button" onclick="openMessageWithTopic('Badminton Match')" class="text-xs font-bold text-blue-100 hover:text-white underline underline-offset-2">
+                                Challenge →
+                            </button>
+                        </div>
+                        <h2 class="font-display text-lg font-extrabold text-white">Competitive Badminton</h2>
+                        <p class="text-blue-100 text-xs sm:text-sm leading-relaxed mt-1.5">
+                            Recognized as one of the best badminton players in my city—bringing fast court coverage, sharp reflexes, disciplined footwork, and smart tactical play to every match.
+                        </p>
+                    </div>
+
+                    <!-- Two Secondary Sport Cards: 10 km Running & Volleyball -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <!-- 10 km Running -->
+                        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                    <i data-lucide="footprints" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Endurance</span>
+                            </div>
+                            <h3 class="font-display font-bold text-base text-[#0F172A] dark:text-white">10 km Running</h3>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Committed to 10 km distance runs to build long-distance stamina, steady pacing, and mental discipline.
+                            </p>
+                        </div>
+
+                        <!-- Volleyball -->
+                        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                                    <i data-lucide="users" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Teamwork</span>
+                            </div>
+                            <h3 class="font-display font-bold text-base text-[#0F172A] dark:text-white">Volleyball</h3>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Active on the volleyball court, sharpening team coordination, quick reactions, and court agility.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- WINDOW 3: Study_Biz.doc (Hidden by default on desktop)    -->
+            <!-- ========================================================= -->
+            <section id="win-study" data-win-id="win-study" onmousedown="focusWindow('win-study')" class="os-window lg:hidden rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col" style="left: 240px; top: 90px; width: 530px; z-index: 20;">
+                <!-- Draggable Window Title Bar -->
+                <div class="win-drag-handle cursor-grab active:cursor-grabbing px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between select-none">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeWindow('win-study', event)" aria-label="Close Study Window" class="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 transition"></button>
+                        <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-[#2563EB]"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                        <i data-lucide="briefcase" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        <span>Study_Biz.doc</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400">NOTES</span>
+                </div>
+
+                <!-- Window Content -->
+                <div class="p-6 space-y-5 win-scroll lg:max-h-[72vh] overflow-y-auto">
+                    <div class="space-y-1">
+                        <h2 class="font-display text-xl font-extrabold text-[#0F172A] dark:text-white">Study, Languages &amp; Business</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Select a notebook tab below to read Odif's current learning focus.</p>
+                    </div>
+
+                    <!-- Interactive Notebook Tabs -->
+                    <div class="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200/70 dark:border-slate-700/70">
+                        <button type="button" onclick="switchStudyTab('languages')" id="study-tab-languages" class="study-tab-btn flex-1 px-3 py-2 rounded-xl text-xs font-bold bg-[#2563EB] text-white shadow-xs transition">
+                            Languages
+                        </button>
+                        <button type="button" onclick="switchStudyTab('business')" id="study-tab-business" class="study-tab-btn flex-1 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white transition">
+                            Business
+                        </button>
+                        <button type="button" onclick="switchStudyTab('math')" id="study-tab-math" class="study-tab-btn flex-1 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white transition">
+                            Mathematics
+                        </button>
+                    </div>
+
+                    <!-- Tab Panels (No language levels or progress bars) -->
+                    <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70">
+                        <!-- Panel 1: English & Mandarin Chinese -->
+                        <div id="study-panel-languages" class="study-panel space-y-2.5">
+                            <div class="flex items-center gap-2 text-[#2563EB] dark:text-blue-400">
+                                <i data-lucide="languages" class="w-5 h-5"></i>
+                                <h3 class="font-display font-bold text-base text-[#0F172A] dark:text-white">English &amp; Mandarin Chinese</h3>
+                            </div>
+                            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Practicing English grammar, vocabulary, and everyday speaking fluency alongside Mandarin Chinese characters, reading, and daily conversation while living and studying at SDJZU in Jinan.
+                            </p>
+                        </div>
+
+                        <!-- Panel 2: Business & Export-Import -->
+                        <div id="study-panel-business" class="study-panel hidden space-y-2.5">
+                            <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                                <i data-lucide="briefcase" class="w-5 h-5"></i>
+                                <h3 class="font-display font-bold text-base text-[#0F172A] dark:text-white">Business &amp; Export-Import</h3>
+                            </div>
+                            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Studying core business fundamentals, entrepreneurship, and structured export-import trade process flows to understand how global commerce connects markets.
+                            </p>
+                        </div>
+
+                        <!-- Panel 3: Mathematics -->
+                        <div id="study-panel-math" class="study-panel hidden space-y-2.5">
+                            <div class="flex items-center gap-2 text-sky-600 dark:text-sky-400">
+                                <i data-lucide="sigma" class="w-5 h-5"></i>
+                                <h3 class="font-display font-bold text-base text-[#0F172A] dark:text-white">Mathematics</h3>
+                            </div>
+                            <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Working through algebra, linear equations, and coordinate geometry to build clear analytical thinking and quantitative problem-solving skills.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- WINDOW 4: Favorites.hub (Hidden by default on desktop)    -->
+            <!-- ========================================================= -->
+            <section id="win-favorites" data-win-id="win-favorites" onmousedown="focusWindow('win-favorites')" class="os-window lg:hidden rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col" style="left: 340px; top: 120px; width: 540px; z-index: 20;">
+                <!-- Draggable Window Title Bar -->
+                <div class="win-drag-handle cursor-grab active:cursor-grabbing px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between select-none">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeWindow('win-favorites', event)" aria-label="Close Favorites Window" class="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 transition"></button>
+                        <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-[#2563EB]"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500"></i>
+                        <span>Favorites.hub</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400">MEDIA</span>
+                </div>
+
+                <!-- Window Content -->
+                <div class="p-6 space-y-4 win-scroll lg:max-h-[72vh] overflow-y-auto">
+                    <div class="space-y-1">
+                        <h2 class="font-display text-xl font-extrabold text-[#0F172A] dark:text-white">Series, Movies &amp; Gaming</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">What Odif watches and plays during downtime.</p>
+                    </div>
+
+                    <!-- Series & Movies Block (One cohesive flowing sentence) -->
+                    <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 space-y-2">
+                        <div class="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                            <i data-lucide="film" class="w-4 h-4"></i>
+                            <h3 class="font-display font-bold text-base text-[#0F172A] dark:text-white">Series &amp; Movies</h3>
+                        </div>
+                        <p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                            I enjoy gripping, unforgettable stories across series, movies, and anime—starting first with <strong class="text-[#0F172A] dark:text-white font-semibold">Breaking Bad</strong>, followed by <strong class="text-[#0F172A] dark:text-white font-semibold">Better Call Saul</strong>, <strong class="text-[#0F172A] dark:text-white font-semibold">The Truman Show</strong>, <strong class="text-[#0F172A] dark:text-white font-semibold">Catch Me If You Can</strong>, <strong class="text-[#0F172A] dark:text-white font-semibold">Attack on Titan</strong>, and <strong class="text-[#0F172A] dark:text-white font-semibold">My Hero Academia</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Gaming Block -->
+                    <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 space-y-2">
+                        <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                            <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+                            <h3 class="font-display font-bold text-base text-[#0F172A] dark:text-white">Gaming</h3>
+                        </div>
+                        <p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                            I love indie, RPG, and cozy games like <strong class="text-[#0F172A] dark:text-white font-semibold">Nine Sols</strong>, <strong class="text-[#0F172A] dark:text-white font-semibold">Hollow Knight</strong>, <strong class="text-[#0F172A] dark:text-white font-semibold">The Legend of Zelda: Breath of the Wild</strong>, <strong class="text-[#0F172A] dark:text-white font-semibold">Dark Souls</strong>, <strong class="text-[#0F172A] dark:text-white font-semibold">Harvest Moon</strong>, and more.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- WINDOW 5: Message.app (Hidden by default on desktop)      -->
+            <!-- ========================================================= -->
+            <section id="win-message" data-win-id="win-message" onmousedown="focusWindow('win-message')" class="os-window lg:hidden rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col" style="left: 440px; top: 80px; width: 480px; z-index: 20;">
+                <!-- Draggable Window Title Bar -->
+                <div class="win-drag-handle cursor-grab active:cursor-grabbing px-4 py-3 bg-slate-100/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between select-none">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeWindow('win-message', event)" aria-label="Close Message Window" class="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 transition"></button>
+                        <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                        <span class="w-3 h-3 rounded-full bg-[#2563EB]"></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                        <i data-lucide="send" class="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400"></i>
+                        <span>Message.app</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400">CHAT</span>
+                </div>
+
+                <!-- Window Content -->
+                <div class="p-6 space-y-4 win-scroll lg:max-h-[72vh] overflow-y-auto">
+                    <div class="space-y-1">
+                        <h2 class="font-display text-xl font-extrabold text-[#0F172A] dark:text-white">Send a Note to Odif</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Choose a topic and send a quick message.</p>
+                    </div>
+
+                    <form id="os-message-form" class="space-y-4">
+                        <!-- Topic Selector Pills -->
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Topic</label>
+                            <div class="flex flex-wrap gap-1.5">
+                                <button type="button" data-topic="Badminton Match" class="msg-topic-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#2563EB] text-white border border-[#2563EB] transition">
+                                    Badminton Match
+                                </button>
+                                <button type="button" data-topic="10 km Run" class="msg-topic-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#2563EB] transition">
+                                    10 km Run
+                                </button>
+                                <button type="button" data-topic="Business & Study" class="msg-topic-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#2563EB] transition">
+                                    Business &amp; Study
+                                </button>
+                                <button type="button" data-topic="Series & Movies" class="msg-topic-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#2563EB] transition">
+                                    Series &amp; Movies
+                                </button>
+                                <button type="button" data-topic="Gaming" class="msg-topic-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#2563EB] transition">
+                                    Gaming
+                                </button>
+                            </div>
+                            <input type="hidden" id="msg-topic-input" value="Badminton Match">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="msg-name" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Your Name</label>
+                                <input id="msg-name" type="text" required placeholder="Your name..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm text-[#0F172A] dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]">
+                            </div>
+                            <div>
+                                <label for="msg-handle" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Email / WeChat</label>
+                                <input id="msg-handle" type="text" required placeholder="Contact handle..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm text-[#0F172A] dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="msg-body" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Message</label>
+                            <textarea id="msg-body" rows="3" required placeholder="Write your message for Odif..." class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm text-[#0F172A] dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB] resize-none"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-blue-500 text-white font-display font-bold text-sm shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 transition">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Send Message</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- 3. FLOATING GLASSMORPHISM BOTTOM DOCK -->
+    <nav aria-label="Workspace App Dock" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[950] px-3 py-2 rounded-3xl bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border border-slate-200/90 dark:border-slate-700/80 shadow-2xl flex items-center gap-2 sm:gap-3">
+        
+        <!-- App 1: Profile.me -->
+        <button type="button" onclick="openWindow('win-profile')" data-dock-target="win-profile" class="dock-item group relative flex flex-col items-center p-1.5 rounded-2xl">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#2563EB] to-blue-700 text-white flex items-center justify-center shadow-md shadow-blue-600/25">
+                <i data-lucide="user-check" class="w-5 h-5"></i>
+            </div>
+            <span class="dock-dot w-1.5 h-1.5 rounded-full bg-[#2563EB] dark:bg-blue-400 mt-1 transition-opacity"></span>
+            <span class="hidden lg:block absolute -top-9 px-2.5 py-1 rounded-lg bg-[#0F172A] text-white text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition whitespace-nowrap shadow-md">
+                Profile.me
+            </span>
+        </button>
+
+        <!-- App 2: Athletics.app -->
+        <button type="button" onclick="openWindow('win-athletics')" data-dock-target="win-athletics" class="dock-item group relative flex flex-col items-center p-1.5 rounded-2xl">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shadow-amber-500/25">
+                <i data-lucide="trophy" class="w-5 h-5"></i>
+            </div>
+            <span class="dock-dot w-1.5 h-1.5 rounded-full bg-[#2563EB] dark:bg-blue-400 mt-1 transition-opacity"></span>
+            <span class="hidden lg:block absolute -top-9 px-2.5 py-1 rounded-lg bg-[#0F172A] text-white text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition whitespace-nowrap shadow-md">
+                Athletics.app
+            </span>
+        </button>
+
+        <!-- App 3: Study_Biz.doc -->
+        <button type="button" onclick="openWindow('win-study')" data-dock-target="win-study" class="dock-item group relative flex flex-col items-center p-1.5 rounded-2xl">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-500/25">
+                <i data-lucide="briefcase" class="w-5 h-5"></i>
+            </div>
+            <span class="dock-dot w-1.5 h-1.5 rounded-full bg-[#2563EB] dark:bg-blue-400 mt-1 opacity-0 transition-opacity"></span>
+            <span class="hidden lg:block absolute -top-9 px-2.5 py-1 rounded-lg bg-[#0F172A] text-white text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition whitespace-nowrap shadow-md">
+                Study_Biz.doc
+            </span>
+        </button>
+
+        <!-- App 4: Favorites.hub -->
+        <button type="button" onclick="openWindow('win-favorites')" data-dock-target="win-favorites" class="dock-item group relative flex flex-col items-center p-1.5 rounded-2xl">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-purple-600/25">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <span class="dock-dot w-1.5 h-1.5 rounded-full bg-[#2563EB] dark:bg-blue-400 mt-1 opacity-0 transition-opacity"></span>
+            <span class="hidden lg:block absolute -top-9 px-2.5 py-1 rounded-lg bg-[#0F172A] text-white text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition whitespace-nowrap shadow-md">
+                Favorites.hub
+            </span>
+        </button>
+
+        <div class="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-0.5"></div>
+
+        <!-- App 5: Message.app -->
+        <button type="button" onclick="openWindow('win-message')" data-dock-target="win-message" class="dock-item group relative flex flex-col items-center p-1.5 rounded-2xl">
+            <div class="w-11 h-11 rounded-2xl bg-[#0F172A] dark:bg-slate-800 text-blue-400 border border-slate-700 flex items-center justify-center shadow-md">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </div>
+            <span class="dock-dot w-1.5 h-1.5 rounded-full bg-[#2563EB] dark:bg-blue-400 mt-1 opacity-0 transition-opacity"></span>
+            <span class="hidden lg:block absolute -top-9 px-2.5 py-1 rounded-lg bg-[#0F172A] text-white text-[11px] font-semibold opacity-0 group-hover:opacity-100 pointer-events-none transition whitespace-nowrap shadow-md">
+                Message.app
+            </span>
+        </button>
+    </nav>
+
+    <!-- Interactive Workspace Engine -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // 1. Live Clock in Top Menu Bar
+        function updateClock() {
+            const clockEl = document.getElementById('os-clock');
+            if (!clockEl) return;
+            const now = new Date();
+            const hrs = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            clockEl.textContent = `${hrs}:${mins}`;
+        }
+        updateClock();
+        setInterval(updateClock, 15000);
+
+        // 2. Toast Notification Helper
+        let toastTimer;
+        function showToast(title, body) {
+            const container = document.getElementById('toast-container');
+            document.getElementById('toast-title').textContent = title;
+            document.getElementById('toast-body').textContent = body;
+
+            container.classList.remove('-translate-y-6', 'opacity-0');
+            container.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                container.classList.add('-translate-y-6', 'opacity-0');
+                container.classList.remove('translate-y-0', 'opacity-100');
+            }, 3200);
+        }
+
+        // 3. One-Click Copy Student ID ('20260100022')
+        function copyStudentId() {
+            const idStr = '20260100022';
+            const helper = document.createElement('textarea');
+            helper.value = idStr;
+            helper.style.position = 'fixed';
+            helper.style.left = '-9999px';
+            document.body.appendChild(helper);
+            helper.select();
+
+            try {
+                document.execCommand('copy');
+                showToast('Student ID Copied', 'Copied 20260100022 to your clipboard.');
+            } catch (err) {
+                showToast('Student ID', 'Odif\'s ID: 20260100022');
+            }
+
+            document.body.removeChild(helper);
+        }
+
+        // 4. Light / Dark Mode Toggle
+        const rootEl = document.documentElement;
+        const savedTheme = localStorage.getItem('odifos-theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            rootEl.classList.add('dark');
+        } else {
+            rootEl.classList.remove('dark');
+        }
+
+        function toggleTheme() {
+            rootEl.classList.toggle('dark');
+            const isDark = rootEl.classList.contains('dark');
+            localStorage.setItem('odifos-theme', isDark ? 'dark' : 'light');
+            showToast(
+                isDark ? 'Dark Workspace' : 'Light Workspace',
+                isDark ? 'Switched to dark slate mode.' : 'Switched to clean light mode.'
+            );
+        }
+
+        // 5. Window Management (Focus, Open, Close, Reset & Dock Indicators)
+        let highestZ = 40;
+
+        function syncDockDots() {
+            const isDesktop = window.innerWidth >= 1024;
+            document.querySelectorAll('[data-dock-target]').forEach(btn => {
+                const targetId = btn.getAttribute('data-dock-target');
+                const winEl = document.getElementById(targetId);
+                const dot = btn.querySelector('.dock-dot');
+                if (!winEl || !dot) return;
+
+                const isOpen = isDesktop
+                    ? !winEl.classList.contains('lg:hidden')
+                    : !winEl.classList.contains('hidden');
+
+                if (isOpen) {
+                    dot.classList.remove('opacity-0');
+                } else {
+                    dot.classList.add('opacity-0');
+                }
+            });
+        }
+
+        function focusWindow(winId) {
+            const target = document.getElementById(winId);
+            if (!target) return;
+
+            document.querySelectorAll('.os-window').forEach(w => w.classList.remove('active-window'));
+            target.classList.add('active-window');
+
+            highestZ += 1;
+            target.style.zIndex = highestZ;
+        }
+
+        function openWindow(winId) {
+            const target = document.getElementById(winId);
+            if (!target) return;
+
+            target.classList.remove('hidden', 'lg:hidden');
+            focusWindow(winId);
+            syncDockDots();
+
+            if (window.innerWidth < 1024) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function closeWindow(winId, e) {
+            if (e) e.stopPropagation();
+            const target = document.getElementById(winId);
+            if (!target) return;
+
+            if (window.innerWidth >= 1024) {
+                target.classList.add('lg:hidden');
+            } else {
+                target.classList.add('hidden');
+            }
+            target.classList.remove('active-window');
+            syncDockDots();
+        }
+
+        function openAllMobile() {
+            document.querySelectorAll('.os-window').forEach(w => {
+                w.classList.remove('hidden', 'lg:hidden');
+            });
+            syncDockDots();
+            showToast('All Apps Visible', 'Showing all workspace windows.');
+        }
+
+        function resetWorkspace() {
+            const defaults = {
+                'win-profile':   { left: '132px', top: '20px',  open: true },
+                'win-athletics': { left: '700px', top: '36px',  open: true },
+                'win-study':     { left: '240px', top: '90px',  open: false },
+                'win-favorites': { left: '340px', top: '120px', open: false },
+                'win-message':   { left: '440px', top: '80px',  open: false },
+            };
+
+            Object.entries(defaults).forEach(([id, cfg]) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.style.left = cfg.left;
+                el.style.top = cfg.top;
+                el.classList.remove('hidden');
+
+                if (cfg.open) {
+                    el.classList.remove('lg:hidden');
+                } else {
+                    el.classList.add('lg:hidden');
+                }
+            });
+
+            focusWindow('win-profile');
+            syncDockDots();
+            showToast('Workspace Arranged', 'Default windows restored cleanly.');
+        }
+
+        // 6. Drag-to-Move Windows on Desktop
+        document.querySelectorAll('.win-drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', (e) => {
+                if (window.innerWidth < 1024) return;
+                if (e.target.closest('button')) return;
+
+                const winEl = handle.closest('.os-window');
+                const canvas = document.getElementById('desktop-canvas');
+                if (!winEl || !canvas) return;
+
+                focusWindow(winEl.id);
+                winEl.classList.add('is-dragging');
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const origLeft = winEl.offsetLeft;
+                const origTop = winEl.offsetTop;
+
+                function onMouseMove(moveEvent) {
+                    const dx = moveEvent.clientX - startX;
+                    const dy = moveEvent.clientY - startY;
+
+                    const maxLeft = Math.max(0, canvas.clientWidth - winEl.offsetWidth);
+                    const maxTop = Math.max(0, canvas.clientHeight - 80);
+
+                    const nextLeft = Math.min(Math.max(0, origLeft + dx), maxLeft);
+                    const nextTop = Math.min(Math.max(0, origTop + dy), maxTop);
+
+                    winEl.style.left = `${nextLeft}px`;
+                    winEl.style.top = `${nextTop}px`;
+                }
+
+                function onMouseUp() {
+                    winEl.classList.remove('is-dragging');
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+        });
+
+        // 7. Interactive Study_Biz.doc Tabs
+        function switchStudyTab(tabKey) {
+            const keys = ['languages', 'business', 'math'];
+            keys.forEach(k => {
+                const btn = document.getElementById(`study-tab-${k}`);
+                const panel = document.getElementById(`study-panel-${k}`);
+                if (!btn || !panel) return;
+
+                if (k === tabKey) {
+                    btn.className = 'study-tab-btn flex-1 px-3 py-2 rounded-xl text-xs font-bold bg-[#2563EB] text-white shadow-xs transition';
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.className = 'study-tab-btn flex-1 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-[#0F172A] dark:hover:text-white transition';
+                    panel.classList.add('hidden');
+                }
+            });
+        }
+
+        // 8. Interactive Message.app Topic Selection & Submit
+        function selectMessageTopic(topic) {
+            const input = document.getElementById('msg-topic-input');
+            if (input) input.value = topic;
+
+            document.querySelectorAll('.msg-topic-btn').forEach(btn => {
+                if (btn.getAttribute('data-topic') === topic) {
+                    btn.className = 'msg-topic-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-[#2563EB] text-white border border-[#2563EB] transition';
+                } else {
+                    btn.className = 'msg-topic-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#2563EB] transition';
+                }
+            });
+        }
+
+        function openMessageWithTopic(topic) {
+            selectMessageTopic(topic);
+            openWindow('win-message');
+        }
+
+        document.querySelectorAll('.msg-topic-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectMessageTopic(btn.getAttribute('data-topic'));
+            });
+        });
+
+        document.getElementById('os-message-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('msg-name').value.trim();
+            const handle = document.getElementById('msg-handle').value.trim();
+            const topic = document.getElementById('msg-topic-input').value;
+            const body = document.getElementById('msg-body').value.trim();
+
+            if (!name || !handle || !body) return;
+
+            showToast(
+                `Sent to Odif, ${name}!`,
+                `Your "${topic}" note has been delivered.`
+            );
+            e.target.reset();
+            selectMessageTopic('Badminton Match');
+        });
+
+        // Initial Sync on Load & Resize
+        window.addEventListener('resize', syncDockDots);
+        syncDockDots();
+    </script>
+</body>
+</html>
